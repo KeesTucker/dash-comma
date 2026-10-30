@@ -63,11 +63,10 @@ func TestTopKeepsBusiest(t *testing.T) {
 	}
 }
 
-// drmProc fakes a process holding a render node, with its fdinfo.
+// drmProc fakes a process holding a render node. It has fdinfo but no fd
+// dir, as another user's process looks without CAP_DAC_READ_SEARCH.
 func drmProc(t *testing.T, proc string, pid int, name, fdinfo string) {
-	dir := filepath.Join(proc, fmt.Sprint(pid))
-	fixture(t, dir, map[string]string{"comm": name + "\n", "fdinfo/5": fdinfo})
-	link(t, "/dev/dri/renderD128", filepath.Join(dir, "fd/5"))
+	fixture(t, filepath.Join(proc, fmt.Sprint(pid)), map[string]string{"comm": name + "\n", "fdinfo/5": fdinfo})
 }
 
 func TestDRMSampler(t *testing.T) {
@@ -84,7 +83,6 @@ func TestDRMSampler(t *testing.T) {
 	drmProc(t, proc, 101, "Xorg-child", i915("3", 0))
 	// Not a DRM file.
 	fixture(t, proc, map[string]string{"300/comm": "bash\n", "300/fdinfo/1": "pos:\t0\n"})
-	link(t, "/dev/pts/0", filepath.Join(proc, "300/fd/1"))
 
 	clock := time.Unix(0, 0)
 	d := &drmSampler{root: proc, now: func() time.Time { return clock }}
@@ -103,5 +101,24 @@ func TestDRMSampler(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
+
+// TestDRMSamplerRecheck finds a render node on an fd it had cached as plain,
+// once the cache empties.
+func TestDRMSamplerRecheck(t *testing.T) {
+	proc := t.TempDir()
+	fixture(t, proc, map[string]string{"300/fdinfo/1": "pos:\t0\n"})
+	d := &drmSampler{root: proc, now: time.Now}
+	d.scan()
+
+	fixture(t, proc, map[string]string{"300/fdinfo/1": "drm-client-id:\t7\ndrm-pdev:\t0000:00:02.0\n"})
+	for i := 2; i < drmRecheck; i++ {
+		if got := d.scan(); len(got) != 0 {
+			t.Fatalf("scan %d: got %+v before the recheck", i, got)
+		}
+	}
+	if got := d.scan(); len(got) != 1 {
+		t.Fatalf("recheck: got %+v", got)
 	}
 }

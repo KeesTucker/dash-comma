@@ -158,7 +158,16 @@ type drmSampler struct {
 	now    func() time.Time
 	last   map[drmKey]drmClient
 	lastAt time.Time
+	// plain is each process's fds that aren't DRM files, so a scan skips
+	// their fdinfo. It empties every drmRecheck scans, in case a process
+	// reuses one of those fd numbers for a render node.
+	plain map[int]map[string]bool
+	scans int
 }
+
+// drmRecheck is how many scans the plain fds are trusted for: 30s at the
+// default 1s poll.
+const drmRecheck = 30
 
 // drmKey is one client: a DRM file, which a process can share with its
 // children or hold through several fds.
@@ -206,42 +215,57 @@ func parseFdinfo(b []byte) (drmKey, drmClient, bool) {
 	return k, c, k.pdev != "" && k.id != ""
 }
 
+// scan reads fdinfo without looking at fd first: another user's fd dir is
+// 0500, which CAP_SYS_PTRACE doesn't get past, but fdinfo only checks ptrace.
 func (d *drmSampler) scan() map[drmKey]drmClient {
+	if d.scans++; d.scans%drmRecheck == 0 {
+		d.plain = nil
+	}
+	plain := map[int]map[string]bool{}
 	out := map[drmKey]drmClient{}
 	withPtrace(func() {
 		for _, pid := range listPIDs(d.root) {
-			fdDir := filepath.Join(d.root, strconv.Itoa(pid), "fd")
-			fds, err := os.ReadDir(fdDir)
+			dir := filepath.Join(d.root, strconv.Itoa(pid), "fdinfo")
+			fds, err := os.ReadDir(dir)
 			if err != nil {
 				continue
 			}
+			known, skip := d.plain[pid], map[string]bool{}
 			for _, fd := range fds {
-				// Only DRM files have the stats; the link is cheaper than fdinfo.
-				if target, err := os.Readlink(filepath.Join(fdDir, fd.Name())); err != nil || !strings.HasPrefix(target, "/dev/dri/") {
+				if known[fd.Name()] {
+					skip[fd.Name()] = true
 					continue
 				}
-				b, err := os.ReadFile(filepath.Join(d.root, strconv.Itoa(pid), "fdinfo", fd.Name()))
+				b, err := os.ReadFile(filepath.Join(dir, fd.Name()))
 				if err != nil {
 					continue
 				}
 				k, c, ok := parseFdinfo(b)
-				if _, seen := out[k]; !ok || seen {
+				if !ok {
+					skip[fd.Name()] = true
+					continue
+				}
+				if _, seen := out[k]; seen {
 					continue
 				}
 				c.pid = pid
 				out[k] = c
 			}
+			if len(skip) > 0 {
+				plain[pid] = skip
+			}
 		}
 	})
+	d.plain = plain
 	return out
 }
 
 // sample is each GPU's busiest processes, by PCI slot. A process's load is
 // its busiest engine, summed over its clients.
 func (d *drmSampler) sample() map[string][]ProcessLoad {
+	d.mu.Lock()
 	now := d.scan()
 	at := d.now()
-	d.mu.Lock()
 	prev, wall := d.last, at.Sub(d.lastAt).Nanoseconds()
 	d.last, d.lastAt = now, at
 	d.mu.Unlock()

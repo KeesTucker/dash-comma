@@ -23,7 +23,7 @@ embeddable charts, with its own stats collection and a new UI.
 ```yaml
 services:
   dash:
-    image: ghcr.io/keestucker/dash-comma:1
+    image: ghcr.io/keestucker/dash-comma:1.0.0 # x-release-please-version
     restart: unless-stopped
     ports:
       - 3001:3001
@@ -78,3 +78,4 @@ compiler.
 Commits follow [Conventional Commits](https://www.conventionalcommits.org).
 release-please keeps a release PR open on `main`; merging it tags `vX.Y.Z` and
 publishes the image as `X.Y.Z`, `X.Y`, `X` and `latest`, for amd64 and arm64.
+Use `X` to take every release short of a breaking one.

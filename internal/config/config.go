@@ -135,7 +135,7 @@ func From(lookup func(string) (string, bool)) *Config {
 		ShowDashVersion:       e.str("SHOW_DASH_VERSION", "icon_hover"),
 		ShowHost:              e.flag("SHOW_HOST"),
 		CustomHost:            e.opt("CUSTOM_HOST"),
-		PageTitle:             e.str("PAGE_TITLE", "dash."),
+		PageTitle:             e.str("PAGE_TITLE", "d,"),
 		UseImperial:           e.flag("USE_IMPERIAL"),
 		NetworkSpeedAsBytes:   e.flag("NETWORK_SPEED_AS_BYTES"),
 		AlwaysShowPercentages: e.flag("ALWAYS_SHOW_PERCENTAGES"),

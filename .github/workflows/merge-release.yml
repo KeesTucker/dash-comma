@@ -27,5 +27,5 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           for pr in $(gh pr list -R "$GITHUB_REPOSITORY" --label "autorelease: pending" --state open --json number --jq '.[].number'); do
-            gh pr merge "$pr" -R "$GITHUB_REPOSITORY" --auto --merge
+            gh pr merge "$pr" -R "$GITHUB_REPOSITORY" --auto --squash
           done

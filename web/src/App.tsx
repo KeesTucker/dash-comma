@@ -44,7 +44,7 @@ function Dashboard({ data, dark, setDark }: { data: PageData; dark: boolean; set
         <header className="tw:flex tw:items-center tw:justify-between tw:gap-4">
           <div className="tw:flex tw:min-w-0 tw:items-baseline tw:gap-3">
             <h1 className="tw:m-0 tw:title-2xl" title={config?.show_dash_version === "icon_hover" && version ? `dash-comma ${version}` : undefined}>
-              {config?.page_title ?? "dash."}
+              {config?.page_title ?? "d,"}
             </h1>
             {host && <span className="tw:truncate tw:text-base tw:text-text-muted">{host}</span>}
           </div>

@@ -25,7 +25,7 @@ func TestDefaultsJSON(t *testing.T) {
 		`"port":3001`, `"routing_path":"/"`, `"fs_device_filter":[]`,
 		`"widget_list":["os","cpu","storage","ram","network"]`,
 		`"os_widget_grow":2.5`, `"storage_poll_interval":60000`, `"speed_test_interval":240`,
-		`"cpu_temps_mode":"avg"`, `"show_dash_version":"icon_hover"`, `"page_title":"dash."`,
+		`"cpu_temps_mode":"avg"`, `"show_dash_version":"icon_hover"`, `"page_title":"d,"`,
 		`"override":{"storage_brands":{},"storage_types":{},"storage_sizes":{},"gpu_brands":[],"gpu_models":[],"gpu_memories":[]}`,
 	} {
 		if !strings.Contains(s, want) {

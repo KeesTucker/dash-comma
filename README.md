@@ -23,7 +23,7 @@ embeddable charts, with its own stats collection and a new UI.
 ```yaml
 services:
   dash:
-    image: ghcr.io/keestucker/dash-comma:1.0.0 # x-release-please-version
+    image: ghcr.io/keestucker/dash-comma:1.1.0 # x-release-please-version
     restart: unless-stopped
     ports:
       - 3001:3001

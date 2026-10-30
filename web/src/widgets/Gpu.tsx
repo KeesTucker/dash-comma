@@ -4,6 +4,7 @@ import { AreaChart } from "../charts/AreaChart";
 import { bytes, percent } from "../format";
 import type { Config, GpuInfo, GpuLoad } from "../types";
 import { Chart, Widget } from "../Widget";
+import { TopProcesses } from "./Processes";
 import { pick } from "./stats";
 
 /**
@@ -48,7 +49,14 @@ export function GpuWidget({ info, load, config }: { info: GpuInfo; load: GpuLoad
   });
   return (
     <Widget title="Graphics" icon={GraphicsCardIcon} hue="pink" grow={config.gpu_widget_grow} minWidth={config.gpu_widget_min_width} pages={pages} page={page} onPage={setPage}>
-      {info.layout.length ? <GpuChart load={load} index={page} config={config} /> : <p className="tw:m-0 tw:text-sm tw:text-text-muted">No GPUs found.</p>}
+      {info.layout.length ? (
+        <>
+          <GpuChart load={load} index={page} config={config} />
+          <TopProcesses processes={load.at(-1)?.layout[page]?.processes} hue="pink" />
+        </>
+      ) : (
+        <p className="tw:m-0 tw:text-sm tw:text-text-muted">No GPUs found.</p>
+      )}
     </Widget>
   );
 }

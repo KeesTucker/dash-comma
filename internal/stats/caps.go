@@ -6,14 +6,17 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const capPerfmon = 38
+const (
+	capSysPtrace = 19
+	capPerfmon   = 38
+)
 
-// withPerfmon runs fn with CAP_PERFMON in this thread's effective set, if
-// it's permitted. The image gives the binary cap_perfmon as permitted only
-// (setcap cap_perfmon=p), so a non-root container with cap_add: [PERFMON]
-// can read Intel's counters, and one without still starts. Caps are per
-// thread, so fn runs locked to the raised thread, which drops it again.
-func withPerfmon(fn func()) {
+// withCap runs fn with a capability in this thread's effective set, if it's
+// permitted. The image gives the binary its caps as permitted only (setcap
+// =p), so a non-root container with the matching cap_add can use them, and
+// one without still starts. Caps are per thread, so fn runs locked to the
+// raised thread, which drops it again.
+func withCap(capability int, fn func()) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -23,17 +26,25 @@ func withPerfmon(fn func()) {
 		fn()
 		return
 	}
-	bit := uint32(1) << (capPerfmon - 32)
-	if data[1].Permitted&bit == 0 || data[1].Effective&bit != 0 {
+	set := &data[capability/32]
+	bit := uint32(1) << (capability % 32)
+	if set.Permitted&bit == 0 || set.Effective&bit != 0 {
 		fn()
 		return
 	}
-	data[1].Effective |= bit
+	set.Effective |= bit
 	if err := unix.Capset(&hdr, &data[0]); err != nil {
 		fn()
 		return
 	}
 	fn()
-	data[1].Effective &^= bit
+	set.Effective &^= bit
 	_ = unix.Capset(&hdr, &data[0])
 }
+
+// withPerfmon lets fn open Intel's engine counters (cap_add: [PERFMON]).
+func withPerfmon(fn func()) { withCap(capPerfmon, fn) }
+
+// withPtrace lets fn read other users' /proc/<pid>/fd and fdinfo
+// (cap_add: [SYS_PTRACE]).
+func withPtrace(fn func()) { withCap(capSysPtrace, fn) }

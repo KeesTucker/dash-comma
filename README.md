@@ -14,6 +14,9 @@ embeddable charts, with its own stats collection and a new UI.
 - **Reads the host itself.** Load, memory, disks, network and temperatures
   come straight from procfs and sysfs, not from a library shelling out to
   `df`, `lsblk` and `dmidecode`. It needs no privileged mode and no root.
+- **Top processes.** The CPU and GPU widgets list the five busiest
+  processes, also at `/load/cpu/processes`, on the `cpu-processes` event and
+  in each GPU's `processes` in `/load/gpu`.
 - **Pools count once.** A mergerfs or ZFS pool in `DASHDOT_FS_VIRTUAL_MOUNTS`
   takes in the disks under it, and shows in the storage chart. Btrfs
   subvolumes aren't counted once per mount.
@@ -29,9 +32,11 @@ services:
       - 3001:3001
     volumes:
       - /:/mnt/host:ro
-    # Intel GPUs: lets dash-comma read the engine counters.
     cap_add:
+      # Intel GPUs: lets dash-comma read the engine counters.
       - PERFMON
+      # Intel and AMD GPUs: lets it see which processes use the GPU.
+      - SYS_PTRACE
     environment:
       DASHDOT_WIDGET_LIST: os,cpu,storage,ram,network,gpu
 ```

@@ -1,0 +1,5 @@
+/dash-comma
+node_modules/
+# Built UI; only the placeholder is committed, so go:embed works before a build.
+web/dist/*
+!web/dist/.gitkeep

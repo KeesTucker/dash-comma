@@ -1,0 +1,30 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - gosec
+    - bodyclose
+    - noctx
+  settings:
+    errcheck:
+      # Closing a file opened read-only can't lose anything.
+      exclude-functions:
+        - (*os.File).Close
+  exclusions:
+    rules:
+      # Test fixtures write files and ignore errors on purpose.
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+      # G304: stats reads procfs, sysfs and the host mount by design. Its
+      # paths are built from fixed roots and kernel-listed names, never
+      # from a request.
+      - path: internal/stats/
+        linters:
+          - gosec
+        text: G304

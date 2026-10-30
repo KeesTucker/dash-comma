@@ -1,0 +1,11 @@
+/* Tailwind with the tw: prefix and no preflight; ds/theme.css swaps its scales for the tokens. */
+@import "tailwindcss/theme" prefix(tw);
+@import "tailwindcss/utilities" prefix(tw);
+@import "./ds/tokens.css";
+@import "./ds/theme.css";
+
+@source "./";
+
+/* No preflight, so the page sets the basics once. */
+*, ::before, ::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); color: var(--color-text); background: var(--color-canvas); }

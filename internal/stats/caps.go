@@ -45,6 +45,6 @@ func withCap(capability int, fn func()) {
 // withPerfmon lets fn open Intel's engine counters (cap_add: [PERFMON]).
 func withPerfmon(fn func()) { withCap(capPerfmon, fn) }
 
-// withPtrace lets fn read other users' /proc/<pid>/fd and fdinfo
+// withPtrace lets fn read other users' /proc/<pid>/fdinfo
 // (cap_add: [SYS_PTRACE]).
 func withPtrace(fn func()) { withCap(capSysPtrace, fn) }

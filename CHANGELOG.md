@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/KeesTucker/dash-comma/compare/v1.2.0...v1.2.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* find gpu processes through fdinfo alone ([#10](https://github.com/KeesTucker/dash-comma/issues/10)) ([eeb5804](https://github.com/KeesTucker/dash-comma/commit/eeb580420768dabf4faf716ca86e9c3e89aff509))
+
 ## [1.2.0](https://github.com/KeesTucker/dash-comma/compare/v1.1.0...v1.2.0) (2026-10-30)
 
 

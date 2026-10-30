@@ -3,8 +3,9 @@ import { Switch } from "../ds";
 import { AreaChart } from "../charts/AreaChart";
 import { percent, temp } from "../format";
 import { useSetting } from "../settings";
-import type { Config, CpuInfo, CpuLoad } from "../types";
+import type { Config, CpuInfo, CpuLoad, ProcessLoad } from "../types";
 import { Chart, Widget } from "../Widget";
+import { TopProcesses } from "./Processes";
 import { pick } from "./stats";
 
 const avg = (ns: number[]) => (ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : 0);
@@ -39,7 +40,7 @@ export function CpuChart({ load, config, multiCore }: { load: CpuLoad[]; config:
   );
 }
 
-export function CpuWidget({ info, load, config }: { info: CpuInfo; load: CpuLoad[]; config: Config }) {
+export function CpuWidget({ info, load, processes, config }: { info: CpuInfo; load: CpuLoad[]; processes: ProcessLoad[]; config: Config }) {
   const [multi, setMulti] = useSetting("multiCore", false);
   const mode = config.cpu_cores_toggle_mode;
   const multiCore = mode === "multi-core" || (mode === "toggle" && multi);
@@ -63,6 +64,7 @@ export function CpuWidget({ info, load, config }: { info: CpuInfo; load: CpuLoad
       actions={mode === "toggle" && <Switch label="Per core" checked={multi} onChange={(e) => setMulti(e.target.checked)} />}
     >
       <CpuChart load={load} config={config} multiCore={multiCore} />
+      <TopProcesses processes={processes} hue="blue" />
     </Widget>
   );
 }

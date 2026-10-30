@@ -29,6 +29,7 @@ type Server struct {
 	nextID     int
 
 	cpu     *feed[stats.CPULoad]
+	procs   *feed[[]stats.ProcessLoad]
 	ram     *feed[stats.RAMLoad]
 	storage *feed[stats.StorageLoad]
 	network *feed[stats.NetworkLoad]
@@ -76,6 +77,7 @@ func New(cfg *config.Config) *Server {
 	cpu := stats.NewCPUSampler(cfg.EnableCPUTemps)
 	layout := s.hw.Storage
 	s.cpu = newFeed("CPU", cfg.Widget("cpu"), bg, cfg.CPUShownDatapoints, cfg.CPUPollInterval, cpu.Sample)
+	s.procs = newFeed("Processes", cfg.Widget("cpu"), bg, 1, cfg.CPUPollInterval, stats.NewProcessSampler().Sample)
 	s.ram = newFeed("RAM", cfg.Widget("ram"), bg, cfg.RAMShownDatapoints, cfg.RAMPollInterval, stats.RAMLoadNow)
 	s.storage = newFeed("Storage", cfg.Widget("storage"), bg, 1, cfg.StoragePollInterval, func() (stats.StorageLoad, error) {
 		return stats.StorageLoadNow(cfg, layout)
@@ -202,6 +204,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 		unsubs := []func(){
 			s.subscribeStatic(emitter[stats.ServerInfo](c, "static-info")),
 			s.cpu.subscribe(emitter[stats.CPULoad](c, "cpu-load")),
+			s.procs.subscribe(emitter[[]stats.ProcessLoad](c, "cpu-processes")),
 			s.ram.subscribe(emitter[stats.RAMLoad](c, "ram-load")),
 			s.storage.subscribe(emitter[stats.StorageLoad](c, "storage-load")),
 			s.network.subscribe(emitter[stats.NetworkLoad](c, "network-load")),
@@ -225,6 +228,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 		})
 		routes.HandleFunc("GET /info", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, s.hardware()) })
 		routes.HandleFunc("GET /load/cpu", loadRoute(s.cpu, nil))
+		routes.HandleFunc("GET /load/cpu/processes", loadRoute(s.procs, nil))
 		// dashdot wrapped RAM, alone among the load routes.
 		routes.HandleFunc("GET /load/ram", loadRoute(s.ram, func(v stats.RAMLoad) any { return map[string]stats.RAMLoad{"load": v} }))
 		routes.HandleFunc("GET /load/storage", loadRoute(s.storage, nil))

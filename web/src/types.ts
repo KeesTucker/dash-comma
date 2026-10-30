@@ -20,7 +20,10 @@ export type NetworkInfo = { interfaceSpeed: number; speedDown: number; speedUp: 
 export type NetworkLoad = { up: number; down: number };
 
 export type GpuInfo = { layout: { brand: string; model: string; memory: number }[] };
-export type GpuLoad = { layout: { load: number; memory: number; engines?: Record<string, number> }[] };
+export type GpuLoad = { layout: { load: number; memory: number; engines?: Record<string, number>; processes?: ProcessLoad[] }[] };
+
+/** dash-comma's own: the busiest processes, on cpu-processes and in each GPU's load. */
+export type ProcessLoad = { pid: number; name: string; load: number };
 
 export type OsInfo = {
   platform: string;

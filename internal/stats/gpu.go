@@ -35,6 +35,7 @@ type gpu struct {
 // GPUs is every display controller on the PCI bus, in bus order.
 type GPUs struct {
 	list []gpu
+	drm  *drmSampler
 }
 
 func NewGPUs(cfg *config.Config) *GPUs {
@@ -80,6 +81,10 @@ func NewGPUs(cfg *config.Config) *GPUs {
 			continue
 		}
 		g.list = append(g.list, x)
+		// NVML has NVIDIA's processes; Intel and AMD list theirs in fdinfo.
+		if vendor != vendorNVIDIA && g.drm == nil {
+			g.drm = newDRMSampler()
+		}
 	}
 	return g
 }
@@ -94,10 +99,17 @@ func (g *GPUs) Static() GPUInfo {
 
 func (g *GPUs) Sample() (GPULoad, error) {
 	out := GPULoad{Layout: []GPUUsage{}}
+	var procs map[string][]ProcessLoad
+	if g.drm != nil {
+		procs = g.drm.sample()
+	}
 	for _, x := range g.list {
 		u := GPUUsage{}
 		if x.sampler != nil {
 			u = x.sampler.sample()
+		}
+		if u.Processes == nil {
+			u.Processes = procs[x.slot]
 		}
 		out.Layout = append(out.Layout, u)
 	}

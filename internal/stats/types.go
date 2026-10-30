@@ -98,9 +98,18 @@ type GPUInfo struct {
 }
 
 type GPUUsage struct {
-	Load    float64            `json:"load"`
-	Memory  float64            `json:"memory"`
-	Engines map[string]float64 `json:"engines,omitempty"`
+	Load      float64            `json:"load"`
+	Memory    float64            `json:"memory"`
+	Engines   map[string]float64 `json:"engines,omitempty"`
+	Processes []ProcessLoad      `json:"processes,omitempty"`
+}
+
+// ProcessLoad is one process's share of the whole CPU, or of a GPU's
+// busiest engine. dashdot has no equivalent.
+type ProcessLoad struct {
+	PID  int     `json:"pid"`
+	Name string  `json:"name"`
+	Load float64 `json:"load"`
 }
 
 type GPULoad struct {

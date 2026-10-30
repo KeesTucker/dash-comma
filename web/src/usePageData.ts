@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { CpuLoad, GpuLoad, NetworkLoad, RamLoad, ServerInfo, StorageLoad } from "./types";
+import type { CpuLoad, GpuLoad, NetworkLoad, ProcessLoad, RamLoad, ServerInfo, StorageLoad } from "./types";
 
 // The socket sits next to the page, so a DASHDOT_ROUTING_PATH of /dash
 // finds /dash/socket. `bun run dev` talks to a local server on :3001.
@@ -18,6 +18,7 @@ export type PageData = {
   error: boolean;
   info?: ServerInfo;
   cpu: CpuLoad[];
+  cpuProcesses: ProcessLoad[];
   ram: RamLoad[];
   network: NetworkLoad[];
   gpu: GpuLoad[];
@@ -30,6 +31,7 @@ export function usePageData(): PageData {
   const [error, setError] = useState(false);
   const [info, setInfo] = useState<ServerInfo>();
   const [cpu, setCpu] = useState<CpuLoad[]>([]);
+  const [cpuProcesses, setCpuProcesses] = useState<ProcessLoad[]>([]);
   const [ram, setRam] = useState<RamLoad[]>([]);
   const [network, setNetwork] = useState<NetworkLoad[]>([]);
   const [gpu, setGpu] = useState<GpuLoad[]>([]);
@@ -52,6 +54,7 @@ export function usePageData(): PageData {
       setInfo(data);
     });
     socket.on("cpu-load", (d: CpuLoad) => setCpu((old) => append(old, d, caps.cpu)));
+    socket.on("cpu-processes", (d: ProcessLoad[]) => setCpuProcesses(d));
     socket.on("ram-load", (d: RamLoad) => setRam((old) => append(old, d, caps.ram)));
     socket.on("network-load", (d: NetworkLoad) => setNetwork((old) => append(old, d, caps.network)));
     socket.on("gpu-load", (d: GpuLoad) => setGpu((old) => append(old, d, caps.gpu)));
@@ -62,5 +65,5 @@ export function usePageData(): PageData {
     };
   }, []);
 
-  return { connected, error, info, cpu, ram, network, gpu, storage };
+  return { connected, error, info, cpu, cpuProcesses, ram, network, gpu, storage };
 }

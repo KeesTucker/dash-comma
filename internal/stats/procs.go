@@ -3,6 +3,7 @@ package stats
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -60,16 +61,61 @@ func top(all []ProcessLoad) []ProcessLoad {
 }
 
 // ProcessSampler finds the processes using the most CPU, from the deltas of
-// each one's user and system time between calls.
+// each one's user and system time between calls, and the most memory.
 type ProcessSampler struct {
-	mu        sync.Mutex
-	root      string
-	last      map[int]uint64
-	lastTotal uint64
+	mu   sync.Mutex
+	root string
+	now  func() time.Time
+	snap *procSnapshot
+	// cpuPrev is the scan CPU last measured against.
+	cpuPrev *procSnapshot
+}
+
+// snapMaxAge lets the CPU and RAM feeds share one walk of /proc when their
+// ticks land close together.
+const snapMaxAge = 500 * time.Millisecond
+
+var pageSize = uint64(max(0, os.Getpagesize()))
+
+type procSnapshot struct {
+	at    time.Time
+	total uint64
+	procs map[int]procStat
+}
+
+type procStat struct {
+	name  string
+	ticks uint64
+	rss   uint64 // bytes
 }
 
 func NewProcessSampler() *ProcessSampler {
-	return &ProcessSampler{root: pidRoot()}
+	return &ProcessSampler{root: pidRoot(), now: time.Now}
+}
+
+// scan walks /proc, unless reuse accepts the last scan. Runs with s.mu held.
+func (s *ProcessSampler) scan(reuse func(*procSnapshot) bool) (*procSnapshot, error) {
+	if s.snap != nil && s.now().Sub(s.snap.at) < snapMaxAge && reuse(s.snap) {
+		return s.snap, nil
+	}
+	total, err := totalJiffies(s.root)
+	if err != nil {
+		return nil, err
+	}
+	snap := &procSnapshot{at: s.now(), total: total, procs: map[int]procStat{}}
+	for _, pid := range listPIDs(s.root) {
+		b, err := os.ReadFile(filepath.Join(s.root, strconv.Itoa(pid), "stat"))
+		if err != nil {
+			continue
+		}
+		name, ticks, rss, ok := parsePIDStat(b)
+		if !ok {
+			continue
+		}
+		snap.procs[pid] = procStat{name: name, ticks: ticks, rss: rss * pageSize}
+	}
+	s.snap = snap
+	return snap, nil
 }
 
 // totalJiffies is every CPU's time from /proc/stat. Process times are in the
@@ -97,54 +143,80 @@ func totalJiffies(root string) (uint64, error) {
 	return 0, sc.Err()
 }
 
-// parsePIDStat reads the name and utime+stime from /proc/<pid>/stat. The
-// name sits in brackets and can hold spaces and brackets itself, so fields
-// count from the last ')'.
-func parsePIDStat(b []byte) (name string, ticks uint64, ok bool) {
+// parsePIDStat reads the name, utime+stime and RSS (in pages) from
+// /proc/<pid>/stat. The name sits in brackets and can hold spaces and
+// brackets itself, so fields count from the last ')'.
+func parsePIDStat(b []byte) (name string, ticks, rss uint64, ok bool) {
 	open, end := bytes.IndexByte(b, '('), bytes.LastIndexByte(b, ')')
 	if open < 0 || end < open {
-		return "", 0, false
+		return "", 0, 0, false
 	}
 	fields := strings.Fields(string(b[end+1:]))
-	// state is field 3 of the whole line; utime and stime are 14 and 15.
-	if len(fields) < 13 {
-		return "", 0, false
+	// state is field 3 of the whole line; utime and stime are 14 and 15,
+	// rss is 24.
+	if len(fields) < 22 {
+		return "", 0, 0, false
 	}
 	utime, err1 := strconv.ParseUint(fields[11], 10, 64)
 	stime, err2 := strconv.ParseUint(fields[12], 10, 64)
-	if err1 != nil || err2 != nil {
-		return "", 0, false
+	pages, err3 := strconv.ParseUint(fields[21], 10, 64)
+	if err1 != nil || err2 != nil || err3 != nil {
+		return "", 0, 0, false
 	}
-	return string(b[open+1 : end]), utime + stime, true
+	return string(b[open+1 : end]), utime + stime, pages, true
 }
 
+// Sample is the busiest processes by CPU since the last call.
 func (s *ProcessSampler) Sample() ([]ProcessLoad, error) {
-	total, err := totalJiffies(s.root)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prev := s.cpuPrev
+	snap, err := s.scan(func(p *procSnapshot) bool { return p != prev })
 	if err != nil {
 		return nil, err
 	}
-	now := map[int]uint64{}
+	s.cpuPrev = snap
+	if prev == nil || snap.total <= prev.total {
+		return []ProcessLoad{}, nil
+	}
+	dt := float64(snap.total - prev.total)
 	var all []ProcessLoad
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	dt := total - s.lastTotal
-	for _, pid := range listPIDs(s.root) {
-		b, err := os.ReadFile(filepath.Join(s.root, strconv.Itoa(pid), "stat"))
-		if err != nil {
-			continue
-		}
-		name, ticks, ok := parsePIDStat(b)
-		if !ok {
-			continue
-		}
-		now[pid] = ticks
+	for pid, p := range snap.procs {
 		// A reused PID can start below the old one's time; skip it once.
-		if prev, seen := s.last[pid]; seen && s.lastTotal > 0 && total > s.lastTotal && ticks >= prev {
-			all = append(all, ProcessLoad{PID: pid, Name: name, Load: round(float64(ticks-prev)/float64(dt)*100, 2)})
+		if last, seen := prev.procs[pid]; seen && p.ticks >= last.ticks {
+			all = append(all, ProcessLoad{PID: pid, Name: p.name, Load: round(float64(p.ticks-last.ticks)/dt*100, 2)})
 		}
 	}
-	s.last, s.lastTotal = now, total
 	return top(all), nil
+}
+
+// Memory is the processes holding the most RAM (RSS, as top shows it), each
+// as a share of the whole.
+func (s *ProcessSampler) Memory() ([]ProcessLoad, error) {
+	m, err := readMeminfo()
+	if err != nil {
+		return nil, err
+	}
+	total := m["MemTotal"]
+	if total == 0 {
+		return nil, errors.New("no MemTotal in meminfo")
+	}
+	s.mu.Lock()
+	snap, err := s.scan(func(*procSnapshot) bool { return true })
+	s.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	all := make([]ProcessLoad, 0, len(snap.procs))
+	for pid, p := range snap.procs {
+		all = append(all, ProcessLoad{PID: pid, Name: p.name, Load: float64(p.rss) / float64(total) * 100, Bytes: p.rss})
+	}
+	// Rounded after picking, so small processes still sort by size.
+	out := top(all)
+	for i := range out {
+		out[i].Load = round(out[i].Load, 2)
+	}
+	return out, nil
 }
 
 // drmSampler reads each process's GPU time from its open DRM files, as the

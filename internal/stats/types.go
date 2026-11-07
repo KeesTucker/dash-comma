@@ -100,16 +100,18 @@ type GPUInfo struct {
 type GPUUsage struct {
 	Load      float64            `json:"load"`
 	Memory    float64            `json:"memory"`
+	Temp      float64            `json:"temp,omitempty"` // °C
 	Engines   map[string]float64 `json:"engines,omitempty"`
 	Processes []ProcessLoad      `json:"processes,omitempty"`
 }
 
-// ProcessLoad is one process's share of the whole CPU, or of a GPU's
-// busiest engine. dashdot has no equivalent.
+// ProcessLoad is one process's share of the whole CPU, of a GPU's busiest
+// engine, or of RAM (with Bytes set). dashdot has no equivalent.
 type ProcessLoad struct {
-	PID  int     `json:"pid"`
-	Name string  `json:"name"`
-	Load float64 `json:"load"`
+	PID   int     `json:"pid"`
+	Name  string  `json:"name"`
+	Load  float64 `json:"load"`
+	Bytes uint64  `json:"bytes,omitempty"`
 }
 
 type GPULoad struct {

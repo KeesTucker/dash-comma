@@ -1,7 +1,7 @@
 import { GraphicsCardIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { AreaChart } from "../charts/AreaChart";
-import { bytes, percent } from "../format";
+import { bytes, percent, temp } from "../format";
 import type { Config, GpuInfo, GpuLoad } from "../types";
 import { Chart, Widget } from "../Widget";
 import { TopProcesses } from "./Processes";
@@ -10,7 +10,8 @@ import { pick } from "./stats";
 /**
  * One GPU's charts. Intel reports each engine class (Render/3D, Video...),
  * shown as small multiples; the rest report load and memory controller use.
- * `filter` picks one chart: an engine name, "load" or "memory".
+ * Temperature, where the card reports it, gets a chart of its own.
+ * `filter` picks one chart: an engine name, "load", "memory" or "temp".
  */
 export function GpuChart({ load, index, config, filter }: { load: GpuLoad[]; index: number; config: Config; filter?: string }) {
   const capacity = config.gpu_shown_datapoints;
@@ -21,14 +22,18 @@ export function GpuChart({ load, index, config, filter }: { load: GpuLoad[]; ind
         { key: "load", label: "Load", values: load.map((l) => l.layout[index]?.load ?? 0) },
         { key: "memory", label: "Memory controller", values: load.map((l) => l.layout[index]?.memory ?? 0) },
       ];
-  const shown = filter ? series.filter((s) => s.key === filter || s.key.startsWith(filter)).slice(0, 1) : series;
+  const all = series.map((s) => ({ ...s, format: percent }));
+  if (load.at(-1)?.layout[index]?.temp != null) {
+    all.push({ key: "temp", label: "Temperature", values: load.map((l) => l.layout[index]?.temp ?? 0), format: (c: number) => temp(c, config.use_imperial) });
+  }
+  const shown = filter ? all.filter((s) => s.key === filter || s.key.startsWith(filter)).slice(0, 1) : all;
   return (
     <div className="tw:grid tw:grow tw:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] tw:gap-3">
-      {(shown.length ? shown : series.slice(0, 1)).map((s) => {
+      {(shown.length ? shown : all.slice(0, 1)).map((s) => {
         const latest = s.values.at(-1);
         return (
-          <Chart key={s.key} label={s.label} value={latest == null ? undefined : percent(latest)}>
-            <AreaChart values={s.values} capacity={capacity} max={100} hue="pink" label={s.label} format={percent} className="tw:min-h-20 tw:grow" />
+          <Chart key={s.key} label={s.label} value={latest == null ? undefined : s.format(latest)}>
+            <AreaChart values={s.values} capacity={capacity} max={100} hue="pink" label={s.label} format={s.format} className="tw:min-h-20 tw:grow" />
           </Chart>
         );
       })}

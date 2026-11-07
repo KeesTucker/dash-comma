@@ -20,6 +20,7 @@ export type PageData = {
   cpu: CpuLoad[];
   cpuProcesses: ProcessLoad[];
   ram: RamLoad[];
+  ramProcesses: ProcessLoad[];
   network: NetworkLoad[];
   gpu: GpuLoad[];
   storage?: StorageLoad;
@@ -33,6 +34,7 @@ export function usePageData(): PageData {
   const [cpu, setCpu] = useState<CpuLoad[]>([]);
   const [cpuProcesses, setCpuProcesses] = useState<ProcessLoad[]>([]);
   const [ram, setRam] = useState<RamLoad[]>([]);
+  const [ramProcesses, setRamProcesses] = useState<ProcessLoad[]>([]);
   const [network, setNetwork] = useState<NetworkLoad[]>([]);
   const [gpu, setGpu] = useState<GpuLoad[]>([]);
   const [storage, setStorage] = useState<StorageLoad>();
@@ -56,6 +58,7 @@ export function usePageData(): PageData {
     socket.on("cpu-load", (d: CpuLoad) => setCpu((old) => append(old, d, caps.cpu)));
     socket.on("cpu-processes", (d: ProcessLoad[]) => setCpuProcesses(d));
     socket.on("ram-load", (d: RamLoad) => setRam((old) => append(old, d, caps.ram)));
+    socket.on("ram-processes", (d: ProcessLoad[]) => setRamProcesses(d));
     socket.on("network-load", (d: NetworkLoad) => setNetwork((old) => append(old, d, caps.network)));
     socket.on("gpu-load", (d: GpuLoad) => setGpu((old) => append(old, d, caps.gpu)));
     socket.on("storage-load", (d: StorageLoad) => setStorage(d));
@@ -65,5 +68,5 @@ export function usePageData(): PageData {
     };
   }, []);
 
-  return { connected, error, info, cpu, cpuProcesses, ram, network, gpu, storage };
+  return { connected, error, info, cpu, cpuProcesses, ram, ramProcesses, network, gpu, storage };
 }

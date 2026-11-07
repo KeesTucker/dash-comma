@@ -30,6 +30,7 @@ type gpu struct {
 	slot    string // PCI address, 0000:03:00.0
 	info    GPU
 	sampler gpuSampler
+	temp    string // hwmon temp*_input, for cards NVML doesn't cover
 }
 
 // GPUs is every display controller on the PCI bus, in bus order.
@@ -73,6 +74,9 @@ func NewGPUs(cfg *config.Config) *GPUs {
 		case vendorIntel:
 			x.sampler = newIntel(x.slot)
 		}
+		if vendor != vendorNVIDIA {
+			x.temp = gpuTempInput(d)
+		}
 
 		if len(cfg.GPUBrandFilter) > 0 && !slices.Contains(cfg.GPUBrandFilter, x.info.Brand) {
 			continue
@@ -111,9 +115,32 @@ func (g *GPUs) Sample() (GPULoad, error) {
 		if u.Processes == nil {
 			u.Processes = procs[x.slot]
 		}
+		if x.temp != "" {
+			if v, ok := readInt(x.temp); ok {
+				u.Temp = round(float64(v)/1000, 1)
+			}
+		}
 		out.Layout = append(out.Layout, u)
 	}
 	return out, nil
+}
+
+// gpuTempInput finds the card's own hwmon sensor. amdgpu labels its edge,
+// junction and memory sensors and xe its pkg and vram ones; edge and pkg are
+// the whole chip. i915 has one unlabelled temp1.
+func gpuTempInput(dev string) string {
+	inputs, _ := filepath.Glob(filepath.Join(dev, "hwmon/hwmon*/temp*_input"))
+	sort.Strings(inputs)
+	for _, in := range inputs {
+		switch readTrim(strings.TrimSuffix(in, "_input") + "_label") {
+		case "edge", "pkg":
+			return in
+		}
+	}
+	if len(inputs) > 0 {
+		return inputs[0]
+	}
+	return ""
 }
 
 type amdSampler struct{ dir string }

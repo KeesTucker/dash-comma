@@ -43,8 +43,11 @@ COPY --from=speedtest /usr/local/bin/speedtest /usr/local/bin/speedtest
 COPY --from=build /dash-comma /usr/local/bin/dash-comma
 # Permitted only, not effective: Intel GPU counters work with
 # cap_add: [PERFMON], and other users' GPU processes show with
-# cap_add: [SYS_PTRACE], both with no root. Without them the binary still runs.
-RUN setcap cap_perfmon,cap_sys_ptrace=p /usr/local/bin/dash-comma && apt-get purge -y libcap2-bin && apt-get autoremove -y
+# cap_add: [SYS_PTRACE], both with no root. cap_add: [BPF, NET_ADMIN] turns on
+# network use per container; dash-comma drops those two (with SETPCAP, which
+# Docker grants by default) once its counters are attached. Without them the
+# binary still runs.
+RUN setcap cap_perfmon,cap_sys_ptrace,cap_bpf,cap_net_admin,cap_setpcap=p /usr/local/bin/dash-comma && apt-get purge -y libcap2-bin && apt-get autoremove -y
 
 ENV DASHDOT_RUNNING_IN_DOCKER=true \
     NVIDIA_VISIBLE_DEVICES=all \

@@ -19,6 +19,9 @@ export type StorageLoad = number[];
 export type NetworkInfo = { interfaceSpeed: number; speedDown: number; speedUp: number; lastSpeedTest: number; type: string; publicIp: string };
 export type NetworkLoad = { up: number; down: number };
 
+/** dash-comma's own, on network-groups: bytes per second for a container, service or app. */
+export type NetworkGroup = { name: string; up: number; down: number };
+
 export type GpuInfo = { layout: { brand: string; model: string; memory: number }[] };
 export type GpuLoad = { layout: { load: number; memory: number; temp?: number; engines?: Record<string, number>; processes?: ProcessLoad[] }[] };
 

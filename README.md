@@ -37,6 +37,10 @@ services:
       - PERFMON
       # Intel and AMD GPUs: lets it see which processes use the GPU.
       - SYS_PTRACE
+      # Network use per container and service. dash-comma drops both once
+      # its counters are attached at startup.
+      - BPF
+      - NET_ADMIN
     environment:
       DASHDOT_WIDGET_LIST: os,cpu,storage,ram,network,gpu
 ```

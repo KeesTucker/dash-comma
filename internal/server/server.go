@@ -34,6 +34,7 @@ type Server struct {
 	ramProc *feed[[]stats.ProcessLoad]
 	storage *feed[stats.StorageLoad]
 	network *feed[stats.NetworkLoad]
+	netGrps *feed[[]stats.NetworkGroup]
 	gpu     *feed[stats.GPULoad]
 }
 
@@ -86,6 +87,7 @@ func New(cfg *config.Config) *Server {
 		return stats.StorageLoadNow(cfg, layout)
 	})
 	s.network = newFeed("Network", cfg.Widget("network"), bg, cfg.NetworkShownDatapoints, cfg.NetworkPollInterval, net.Sample)
+	s.netGrps = newFeed("Network groups", cfg.Widget("network"), bg, 1, cfg.NetworkPollInterval, stats.NewNetGroups().Sample)
 	s.gpu = newFeed("GPU", cfg.Widget("gpu"), bg, cfg.GPUShownDatapoints, cfg.GPUPollInterval, gpus.Sample)
 	return s
 }
@@ -212,6 +214,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 			s.ramProc.subscribe(emitter[[]stats.ProcessLoad](c, "ram-processes")),
 			s.storage.subscribe(emitter[stats.StorageLoad](c, "storage-load")),
 			s.network.subscribe(emitter[stats.NetworkLoad](c, "network-load")),
+			s.netGrps.subscribe(emitter[[]stats.NetworkGroup](c, "network-groups")),
 			s.gpu.subscribe(emitter[stats.GPULoad](c, "gpu-load")),
 		}
 		_ = c.On("disconnect", func(...any) {
@@ -238,6 +241,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 		routes.HandleFunc("GET /load/ram/processes", loadRoute(s.ramProc, nil))
 		routes.HandleFunc("GET /load/storage", loadRoute(s.storage, nil))
 		routes.HandleFunc("GET /load/network", loadRoute(s.network, nil))
+		routes.HandleFunc("GET /load/network/groups", loadRoute(s.netGrps, nil))
 		routes.HandleFunc("GET /load/gpu", loadRoute(s.gpu, nil))
 	}
 	routes.Handle("GET /", staticFiles(web))

@@ -70,7 +70,7 @@ function Dashboard({ data, dark, setDark }: { data: PageData; dark: boolean; set
                 case "storage":
                   return <StorageWidget key={w} data={info.storage} load={data.storage} config={config} />;
                 case "network":
-                  return <NetworkWidget key={w} info={info.network} load={data.network} config={config} />;
+                  return <NetworkWidget key={w} info={info.network} load={data.network} groups={data.networkGroups} config={config} />;
                 case "gpu":
                   return <GpuWidget key={w} info={info.gpu} load={data.gpu} config={config} />;
                 default:

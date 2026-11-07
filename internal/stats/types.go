@@ -87,6 +87,14 @@ type NetworkLoad struct {
 	Down float64 `json:"down"`
 }
 
+// NetworkGroup is one cgroup's bytes per second: a container, a systemd
+// service or a desktop app. dashdot has no equivalent.
+type NetworkGroup struct {
+	Name string  `json:"name"`
+	Up   float64 `json:"up"`
+	Down float64 `json:"down"`
+}
+
 type GPU struct {
 	Brand  string  `json:"brand"`
 	Model  string  `json:"model"`

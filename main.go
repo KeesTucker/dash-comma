@@ -29,6 +29,8 @@ func main() {
 	if cfg.RunningInDocker {
 		stats.HostRoot = "/mnt/host"
 	}
+	// Before anything else starts: it may re-exec the process.
+	stats.SetupNetCounters(cfg.Widget("network"))
 
 	dist, err := fs.Sub(web.Dist, "dist")
 	if err != nil {

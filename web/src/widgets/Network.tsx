@@ -1,7 +1,8 @@
 import { NetworkIcon } from "@phosphor-icons/react";
 import { AreaChart } from "../charts/AreaChart";
 import { speed } from "../format";
-import type { Config, NetworkInfo, NetworkLoad } from "../types";
+import { Meter } from "../charts/Meter";
+import type { Config, NetworkGroup, NetworkInfo, NetworkLoad } from "../types";
 import { Chart, Widget } from "../Widget";
 import { pick } from "./stats";
 
@@ -28,7 +29,23 @@ export function NetworkChart({ load, config, filter }: { load: NetworkLoad[]; co
   );
 }
 
-export function NetworkWidget({ info, load, config }: { info: NetworkInfo; load: NetworkLoad[]; config: Config }) {
+/** The busiest containers, services and apps, each bar against the busiest. Shows nothing while all are idle. */
+function TopGroups({ groups, config }: { groups: NetworkGroup[]; config: Config }) {
+  if (!groups.length) return null;
+  const fmt = (bytesPerSec: number) => speed(bytesPerSec * 8, config.network_speed_as_bytes);
+  const most = Math.max(...groups.map((g) => g.down + g.up));
+  return (
+    <section className="tw:flex tw:flex-col tw:gap-2" aria-label="Top users">
+      <h3 className="tw:m-0 tw:text-xs tw:font-normal tw:text-text-muted">Top users</h3>
+      {/* Two containers can share a process name, so the key takes the rank. */}
+      {groups.map((g, i) => (
+        <Meter key={`${i}-${g.name}`} value={most ? (g.down + g.up) / most : 0} hue="orange" label={g.name} valueLabel={`↓ ${fmt(g.down)}  ↑ ${fmt(g.up)}`} />
+      ))}
+    </section>
+  );
+}
+
+export function NetworkWidget({ info, load, groups, config }: { info: NetworkInfo; load: NetworkLoad[]; groups: NetworkGroup[]; config: Config }) {
   const o = config.override;
   const asBytes = config.network_speed_as_bytes;
   const down = o.network_speed_down ?? info.speedDown;
@@ -45,6 +62,7 @@ export function NetworkWidget({ info, load, config }: { info: NetworkInfo; load:
   return (
     <Widget title="Network" icon={NetworkIcon} hue="orange" grow={config.network_widget_grow} minWidth={config.network_widget_min_width} pages={[stats]}>
       <NetworkChart load={load} config={config} />
+      <TopGroups groups={groups} config={config} />
     </Widget>
   );
 }

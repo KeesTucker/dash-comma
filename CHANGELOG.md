@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/KeesTucker/dash-comma/compare/v1.2.1...v1.3.0) (2026-11-07)
+
+
+### Features
+
+* show network use per container and service ([#16](https://github.com/KeesTucker/dash-comma/issues/16)) ([5364694](https://github.com/KeesTucker/dash-comma/commit/5364694af3d19a6380456c45340b425639dea797))
+* top memory processes and cpu/gpu temperature charts ([#13](https://github.com/KeesTucker/dash-comma/issues/13)) ([f8d6dda](https://github.com/KeesTucker/dash-comma/commit/f8d6dda43edcb846b9ffe0b96387bc5224299bf7))
+
 ## [1.2.1](https://github.com/KeesTucker/dash-comma/compare/v1.2.0...v1.2.1) (2026-10-30)
 
 

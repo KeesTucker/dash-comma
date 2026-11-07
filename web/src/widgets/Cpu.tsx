@@ -10,14 +10,36 @@ import { pick } from "./stats";
 
 const avg = (ns: number[]) => (ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : 0);
 
-function tempOf(load: CpuLoad | undefined, config: Config) {
-  if (!config.enable_cpu_temps || !load?.length) return undefined;
-  const temps = load.map((c) => c.temp);
-  return temp(config.cpu_temps_mode === "max" ? Math.max(...temps) : avg(temps), config.use_imperial);
+/** The temperature series: each reading's hottest core or the average, per cpu_temps_mode. */
+function temps(load: CpuLoad[], config: Config) {
+  if (!config.enable_cpu_temps) return undefined;
+  return load.map((l) => {
+    const ts = l.map((c) => c.temp);
+    return config.cpu_temps_mode === "max" ? Math.max(0, ...ts) : avg(ts);
+  });
 }
 
-export function CpuChart({ load, config, multiCore }: { load: CpuLoad[]; config: Config; multiCore: boolean }) {
+/**
+ * Load, overall or per core, plus a temperature chart when temps are on.
+ * `filter` shows just one: "load" or "temp".
+ */
+export function CpuChart({ load, config, multiCore, filter }: { load: CpuLoad[]; config: Config; multiCore: boolean; filter?: string }) {
   const capacity = config.cpu_shown_datapoints;
+  const fmtTemp = (c: number) => temp(c, config.use_imperial);
+  const t = filter === "load" ? undefined : temps(load, config);
+  const tempChart = (className: string) => {
+    if (!t) return null;
+    const latest = t.at(-1);
+    return (
+      <Chart key="temp" label="Temperature" value={latest == null ? undefined : fmtTemp(latest)}>
+        <AreaChart values={t} capacity={capacity} max={100} hue="blue" label="Temperature" format={fmtTemp} className={className} />
+      </Chart>
+    );
+  };
+  if (filter === "temp" && t) {
+    return <div className="tw:flex tw:grow tw:flex-col">{tempChart("tw:grow")}</div>;
+  }
+
   if (multiCore) {
     const cores = load.at(-1) ?? [];
     return (
@@ -27,16 +49,19 @@ export function CpuChart({ load, config, multiCore }: { load: CpuLoad[]; config:
             <AreaChart values={load.map((l) => l[c.core]?.load ?? 0)} capacity={capacity} max={100} hue="blue" label={`Core ${c.core + 1}`} format={percent} className="tw:h-12" />
           </Chart>
         ))}
+        {tempChart("tw:h-12")}
       </div>
     );
   }
   const values = load.map((l) => avg(l.map((c) => c.load)));
-  const t = tempOf(load.at(-1), config);
   const latest = values.at(-1);
   return (
-    <Chart label={t ? `Load, ${t}` : "Load"} value={latest == null ? undefined : percent(latest)}>
-      <AreaChart values={values} capacity={capacity} max={100} hue="blue" label="Load" format={percent} className="tw:grow" />
-    </Chart>
+    <div className="tw:flex tw:grow tw:flex-col tw:gap-3 tw:sm:flex-row">
+      <Chart label="Load" value={latest == null ? undefined : percent(latest)}>
+        <AreaChart values={values} capacity={capacity} max={100} hue="blue" label="Load" format={percent} className="tw:grow" />
+      </Chart>
+      {tempChart("tw:grow")}
+    </div>
   );
 }
 

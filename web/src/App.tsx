@@ -1,6 +1,6 @@
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect } from "react";
-import { Alert, IconButton, Panel, Spinner } from "./ds";
+import { Alert, IconButton, Panel } from "./ds";
 import { readSingleWidget } from "./query";
 import { useSetting } from "./settings";
 import { SingleWidget } from "./SingleWidget";
@@ -57,13 +57,7 @@ function Dashboard({ data, dark, setDark }: { data: PageData; dark: boolean; set
           </Alert>
         )}
 
-        {!info || !config ? (
-          !data.error && (
-            <div className="tw:flex tw:justify-center tw:py-16">
-              <Spinner />
-            </div>
-          )
-        ) : (
+        {!info || !config ? null : (
           <div className="tw:flex tw:flex-wrap tw:gap-4">
             {config.widget_list.map((w) => {
               switch (w) {

@@ -31,6 +31,7 @@ type Server struct {
 	cpu     *feed[stats.CPULoad]
 	procs   *feed[[]stats.ProcessLoad]
 	ram     *feed[stats.RAMLoad]
+	ramProc *feed[[]stats.ProcessLoad]
 	storage *feed[stats.StorageLoad]
 	network *feed[stats.NetworkLoad]
 	gpu     *feed[stats.GPULoad]
@@ -77,8 +78,10 @@ func New(cfg *config.Config) *Server {
 	cpu := stats.NewCPUSampler(cfg.EnableCPUTemps)
 	layout := s.hw.Storage
 	s.cpu = newFeed("CPU", cfg.Widget("cpu"), bg, cfg.CPUShownDatapoints, cfg.CPUPollInterval, cpu.Sample)
-	s.procs = newFeed("Processes", cfg.Widget("cpu"), bg, 1, cfg.CPUPollInterval, stats.NewProcessSampler().Sample)
+	procs := stats.NewProcessSampler()
+	s.procs = newFeed("Processes", cfg.Widget("cpu"), bg, 1, cfg.CPUPollInterval, procs.Sample)
 	s.ram = newFeed("RAM", cfg.Widget("ram"), bg, cfg.RAMShownDatapoints, cfg.RAMPollInterval, stats.RAMLoadNow)
+	s.ramProc = newFeed("RAM processes", cfg.Widget("ram"), bg, 1, cfg.RAMPollInterval, procs.Memory)
 	s.storage = newFeed("Storage", cfg.Widget("storage"), bg, 1, cfg.StoragePollInterval, func() (stats.StorageLoad, error) {
 		return stats.StorageLoadNow(cfg, layout)
 	})
@@ -206,6 +209,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 			s.cpu.subscribe(emitter[stats.CPULoad](c, "cpu-load")),
 			s.procs.subscribe(emitter[[]stats.ProcessLoad](c, "cpu-processes")),
 			s.ram.subscribe(emitter[stats.RAMLoad](c, "ram-load")),
+			s.ramProc.subscribe(emitter[[]stats.ProcessLoad](c, "ram-processes")),
 			s.storage.subscribe(emitter[stats.StorageLoad](c, "storage-load")),
 			s.network.subscribe(emitter[stats.NetworkLoad](c, "network-load")),
 			s.gpu.subscribe(emitter[stats.GPULoad](c, "gpu-load")),
@@ -231,6 +235,7 @@ func (s *Server) Handler(web fs.FS) http.Handler {
 		routes.HandleFunc("GET /load/cpu/processes", loadRoute(s.procs, nil))
 		// dashdot wrapped RAM, alone among the load routes.
 		routes.HandleFunc("GET /load/ram", loadRoute(s.ram, func(v stats.RAMLoad) any { return map[string]stats.RAMLoad{"load": v} }))
+		routes.HandleFunc("GET /load/ram/processes", loadRoute(s.ramProc, nil))
 		routes.HandleFunc("GET /load/storage", loadRoute(s.storage, nil))
 		routes.HandleFunc("GET /load/network", loadRoute(s.network, nil))
 		routes.HandleFunc("GET /load/gpu", loadRoute(s.gpu, nil))

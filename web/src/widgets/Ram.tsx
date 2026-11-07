@@ -1,8 +1,9 @@
 import { MemoryIcon } from "@phosphor-icons/react";
 import { AreaChart } from "../charts/AreaChart";
 import { bytes, countNames, percent } from "../format";
-import type { Config, RamInfo, RamLoad } from "../types";
+import type { Config, ProcessLoad, RamInfo, RamLoad } from "../types";
 import { Chart, Widget } from "../Widget";
+import { TopProcesses } from "./Processes";
 import { pick } from "./stats";
 
 export function RamChart({ load, size, config }: { load: RamLoad[]; size: number; config: Config }) {
@@ -15,7 +16,7 @@ export function RamChart({ load, size, config }: { load: RamLoad[]; size: number
   );
 }
 
-export function RamWidget({ info, load, config }: { info: RamInfo; load: RamLoad[]; config: Config }) {
+export function RamWidget({ info, load, processes, config }: { info: RamInfo; load: RamLoad[]; processes: ProcessLoad[]; config: Config }) {
   const o = config.override;
   const size = o.ram_size ?? info.size;
   const first = info.layout[0];
@@ -28,6 +29,7 @@ export function RamWidget({ info, load, config }: { info: RamInfo; load: RamLoad
   return (
     <Widget title="Memory" icon={MemoryIcon} hue="purple" grow={config.ram_widget_grow} minWidth={config.ram_widget_min_width} pages={[stats]}>
       <RamChart load={load} size={size} config={config} />
+      <TopProcesses processes={processes} hue="purple" />
     </Widget>
   );
 }

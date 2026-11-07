@@ -29,7 +29,7 @@ export function SingleWidget({ data, query }: { data: PageData; query: Query }) 
   let chart = null;
   switch (query.graph) {
     case "cpu":
-      chart = <CpuChart load={data.cpu} config={config} multiCore={query.multiView} />;
+      chart = <CpuChart load={data.cpu} config={config} multiCore={query.multiView} filter={query.filter || undefined} />;
       break;
     case "ram":
       chart = <RamChart load={data.ram} size={config.override.ram_size ?? info.ram.size} config={config} />;

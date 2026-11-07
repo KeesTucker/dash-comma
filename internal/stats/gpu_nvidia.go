@@ -51,7 +51,11 @@ func (n *nvidiaSampler) sample() GPUUsage {
 	if ret != nvml.SUCCESS {
 		return GPUUsage{}
 	}
-	return GPUUsage{Load: float64(u.Gpu), Memory: float64(u.Memory), Processes: n.processes()}
+	out := GPUUsage{Load: float64(u.Gpu), Memory: float64(u.Memory), Processes: n.processes()}
+	if t, ret := n.dev.GetTemperature(nvml.TEMPERATURE_GPU); ret == nvml.SUCCESS {
+		out.Temp = float64(t)
+	}
+	return out
 }
 
 // processes is each process's busiest of SM, encoder and decoder since the

@@ -72,7 +72,7 @@ function Dashboard({ data, dark, setDark }: { data: PageData; dark: boolean; set
                 case "cpu":
                   return <CpuWidget key={w} info={info.cpu} load={data.cpu} processes={data.cpuProcesses} config={config} />;
                 case "ram":
-                  return <RamWidget key={w} info={info.ram} load={data.ram} config={config} />;
+                  return <RamWidget key={w} info={info.ram} load={data.ram} processes={data.ramProcesses} config={config} />;
                 case "storage":
                   return <StorageWidget key={w} data={info.storage} load={data.storage} config={config} />;
                 case "network":

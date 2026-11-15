@@ -6,7 +6,7 @@ COPY web/ ./
 RUN bun run build
 
 # cgo for NVML, which is loaded at runtime only where an NVIDIA driver is.
-FROM golang:1.27.3-trixie AS build
+FROM golang:1.27.4-trixie AS build
 ARG VERSION=0.0.0-dev
 ARG BUILDHASH=""
 WORKDIR /src

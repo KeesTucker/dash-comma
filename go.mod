@@ -1,6 +1,6 @@
 module github.com/KeesTucker/dash-comma
 
-go 1.27.3
+go 1.27.4
 
 // bun puts a Go package in node_modules (flatted); keep it out of ./...
 ignore ./web/node_modules

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/KeesTucker/dash-comma/compare/v1.3.0...v1.3.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency motion to v14 ([#19](https://github.com/KeesTucker/dash-comma/issues/19)) ([f6eec28](https://github.com/KeesTucker/dash-comma/commit/f6eec28d42fde657cdaa5499af4bc0294d7227c4))
+* **deps:** update gomod non-major ([#18](https://github.com/KeesTucker/dash-comma/issues/18)) ([b610bd9](https://github.com/KeesTucker/dash-comma/commit/b610bd9fccfec1d5aa112c809f0e8e34ac631fa2))
+
 ## [1.3.0](https://github.com/KeesTucker/dash-comma/compare/v1.2.1...v1.3.0) (2026-11-07)
 
 

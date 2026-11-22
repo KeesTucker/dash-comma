@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.4 AS web
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.5 AS web
 WORKDIR /web
 COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile

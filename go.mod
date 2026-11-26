@@ -8,7 +8,7 @@ ignore ./web/node_modules
 require (
 	github.com/NVIDIA/go-nvml v0.13.4-1
 	github.com/cilium/ebpf v0.22.0
-	github.com/klauspost/compress v1.20.4
+	github.com/klauspost/compress v1.20.5
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/zishang520/socket.io/servers/socket/v3 v3.0.6
 	github.com/zishang520/socket.io/v3 v3.0.6
